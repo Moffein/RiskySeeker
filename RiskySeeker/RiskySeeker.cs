@@ -141,3 +141,11 @@ namespace RiskySeeker
         }
     }
 }
+
+namespace R2API.Utils
+{
+    [AttributeUsage(AttributeTargets.Assembly)]
+    public class ManualNetworkRegistrationAttribute : Attribute
+    {
+    }
+}
