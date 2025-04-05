@@ -14,7 +14,7 @@ using RoR2.Projectile;
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
 namespace RiskySeeker
 {
-    [BepInPlugin("com.RiskyLives.RiskySeeker", "RiskySeeker", "1.0.0")]
+    [BepInPlugin("com.RiskyLives.RiskySeeker", "RiskySeeker", "1.0.1")]
     public class RiskySeeker : BaseUnityPlugin
     {
         public static class ConfigOptions
@@ -70,6 +70,9 @@ namespace RiskySeeker
         {
             if (!ConfigOptions.buffUnseenHand) return;
             IL.EntityStates.Seeker.UnseenHand.FixedUpdate += UnseenHand_FixedUpdate;
+            GameObject projectilePrefab = Addressables.LoadAssetAsync<GameObject>("RoR2/DLC2/Seeker/UnseenHandMovingProjectile.prefab").WaitForCompletion();
+            UnseenHandHealingProjectile u = projectilePrefab.GetComponent<UnseenHandHealingProjectile>();
+            u.chakraIncrease = 0f;
         }
 
         private void UnseenHand_FixedUpdate(ILContext il)
