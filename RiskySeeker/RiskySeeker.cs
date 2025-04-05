@@ -10,11 +10,13 @@ using System.Security;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using RoR2.Projectile;
+using UnityEngine.Networking;
+using System.Collections.Generic;
 [module: UnverifiableCode]
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
 namespace RiskySeeker
 {
-    [BepInPlugin("com.RiskyLives.RiskySeeker", "RiskySeeker", "1.0.1")]
+    [BepInPlugin("com.RiskyLives.RiskySeeker", "RiskySeeker", "1.0.2")]
     public class RiskySeeker : BaseUnityPlugin
     {
         public static class ConfigOptions
@@ -103,6 +105,30 @@ namespace RiskySeeker
             IL.EntityStates.Seeker.MeditationUI.Update += MeditationUI_Update;
             SetAddressableEntityStateField("RoR2/DLC2/Seeker/EntityStates.Seeker.Meditate2.asset", "damageCoefficient", "9");
             On.RoR2.Language.SetCurrentLanguage += Language_SetCurrentLanguage;
+            On.RoR2.SeekerController.CmdTriggerHealPulse += SeekerController_CmdTriggerHealPulse;
+        }
+
+        private static GameObject cleanseEffect = Addressables.LoadAssetAsync<GameObject>("RoR2/DLC2/Seeker/SpiritPunchMuzzleFlashVFX.prefab").WaitForCompletion();
+        private void SeekerController_CmdTriggerHealPulse(On.RoR2.SeekerController.orig_CmdTriggerHealPulse orig, SeekerController self, float value, Vector3 corePosition, float blastRadius)
+        {
+            orig(self, value, corePosition, blastRadius);
+
+            if (!NetworkServer.active) return;
+            List<ProjectileController> instancesList = InstanceTracker.GetInstancesList<ProjectileController>();
+            List<GameObject> toDestroy = new List<GameObject>();
+            foreach (ProjectileController pc in instancesList)
+            {
+                TeamIndex friendlyTeam = self.characterBody.teamComponent ? self.characterBody.teamComponent.teamIndex : TeamIndex.None;
+                if (pc.cannotBeDeleted || pc.teamFilter.teamIndex == friendlyTeam || (pc.transform.position - self.transform.position).sqrMagnitude >= blastRadius * blastRadius) continue;
+                toDestroy.Add(pc.gameObject);
+            }
+
+            GameObject[] toDestroy2 = toDestroy.ToArray();
+            for (int i = 0; i < toDestroy2.Length; i++)
+            {
+                EffectManager.SimpleEffect(cleanseEffect, toDestroy2[i].transform.position, toDestroy2[i].transform.rotation, true);
+                UnityEngine.Object.Destroy(toDestroy2[i]);
+            }
         }
 
         private void MeditationUI_Update(ILContext il)
